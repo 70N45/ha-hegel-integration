@@ -37,6 +37,8 @@ class HegelH590MediaPlayer(MediaPlayerEntity):
             name: ALL_SOURCES[name] for name in self._enabled_sources
         }
 
+        self._attr_unique_id = f"hegel_h590_{entry.entry_id}"
+
         self._state = MediaPlayerState.OFF
         self._volume = 0.0
         self._muted = False
