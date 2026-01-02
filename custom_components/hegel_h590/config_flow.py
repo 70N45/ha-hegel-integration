@@ -6,6 +6,9 @@ from homeassistant.helpers import selector
 from .const import DOMAIN, DEFAULT_PORT, DEFAULT_NAME, ALL_SOURCES
 
 
+DEVICE_CLASSES = ["media_player", "tv"]
+
+
 class HegelH590ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
@@ -31,8 +34,17 @@ class HegelH590ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
+                vol.Required(
+                    "device_class", default="media_player"
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=DEVICE_CLASSES,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
             }
         )
+
 
         return self.async_show_form(
             step_id="user",

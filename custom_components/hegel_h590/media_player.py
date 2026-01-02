@@ -37,6 +37,9 @@ class HegelH590MediaPlayer(MediaPlayerEntity):
             name: ALL_SOURCES[name] for name in self._enabled_sources
         }
 
+        # Configurable device class for homekit compatibility
+        self._device_class = entry.data.get("device_class", "media_player")
+
         self._attr_unique_id = f"hegel_h590_{entry.entry_id}"
 
         self._state = MediaPlayerState.OFF
@@ -80,6 +83,12 @@ class HegelH590MediaPlayer(MediaPlayerEntity):
     @property
     def source_list(self):
         return list(self._source_map.keys())
+
+    @property
+    def device_class(self):
+        if self._device_class == "tv":
+            return "tv"
+        return None  # default media_player
 
     #
     # --- Controls ---
