@@ -6,7 +6,7 @@ from homeassistant.helpers import selector
 from .const import DOMAIN, DEFAULT_PORT, DEFAULT_NAME, ALL_SOURCES
 
 
-DEVICE_CLASSES = ["media_player", "tv"]
+DEVICE_CLASSES = ["media_player", "receiver"]
 
 
 class HegelH590ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
