@@ -1,125 +1,123 @@
-import asyncio
-import socket
 import logging
-from homeassistant.components.media_player import MediaPlayerEntity
-from homeassistant.components.media_player.const import (
-    MediaPlayerEntityFeature, MediaPlayerState
+from homeassistant.components.media_player import (
+    MediaPlayerEntity, MediaPlayerEntityFeature, MediaPlayerState
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from .const import ALL_SOURCES
+from .hegel_backend import HegelAmp
 
 _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
-    async_add_entities([HegelH590MediaPlayer(entry)])
+    amp = HegelAmp(entry.data["host"], entry.data["port"])
+    selected_sources = {name: ALL_SOURCES[name] for name in entry.data["sources"]}
+
+    async_add_entities([
+        HegelH590MediaPlayer(amp, entry.data["name"], selected_sources),
+        HegelH590Speaker(amp, entry.data["name"], selected_sources)
+    ])
 
 class HegelH590MediaPlayer(MediaPlayerEntity):
-    def __init__(self, entry: ConfigEntry):
-        self._host = entry.data["host"]
-        self._port = entry.data["port"]
-        self._attr_name = entry.data["name"]
+    """Main HA entity for dashboards/automations."""
 
-        self._enabled_sources = entry.data["sources"]
-        self._source_map = {name: ALL_SOURCES[name] for name in self._enabled_sources}
-
-        # Always media_player for HomeKit compatibility
-        self._device_type = "media_player"
-
-        self._attr_unique_id = f"{self._host}_{self._port}_hegel_h590"
-
-        self._state = MediaPlayerState.OFF
-        self._volume = 0.0
-        self._muted = False
-        self._source = None
-
+    def __init__(self, amp: HegelAmp, name, sources):
+        self._amp = amp
+        self._attr_name = name
+        self._source_map = {name: id for name, id in sources.items()}
+        self._enabled_sources = list(sources.keys())
+        self._attr_unique_id = f"{name}_{amp._host}_main"
         self._attr_supported_features = (
             MediaPlayerEntityFeature.TURN_ON
             | MediaPlayerEntityFeature.TURN_OFF
             | MediaPlayerEntityFeature.VOLUME_SET
             | MediaPlayerEntityFeature.SELECT_SOURCE
         )
+        self._state = MediaPlayerState.OFF
+        self._volume = 0.0
+        self._source = None
 
-    #
-    # --- TCP communication ---
-    #
-    async def _send_command(self, command: str) -> str:
-        if not command.endswith("\r"):
-            command += "\r"
-
-        def _blocking_call():
-            try:
-                with socket.create_connection((self._host, self._port), timeout=5) as sock:
-                    sock.sendall(command.encode("ascii"))
-                    return sock.recv(1024).decode("ascii", errors="ignore").strip()
-            except Exception as e:
-                _LOGGER.error("Hegel H590 TCP error: %s", e)
-                raise
-
-        return await asyncio.to_thread(_blocking_call)
-
-    #
-    # --- HA properties ---
-    #
-    @property
-    def state(self):
-        return self._state
-
-    @property
-    def volume_level(self):
-        return self._volume
-
-    @property
-    def source(self):
-        return self._source
-
-    @property
-    def source_list(self):
-        return list(self._source_map.keys())
-
-    #
-    # --- Controls ---
-    #
     async def async_turn_on(self):
-        await self._send_command("-p.1")
+        await self._amp.set_power(True)
         self._state = MediaPlayerState.ON
         self.async_write_ha_state()
 
     async def async_turn_off(self):
-        await self._send_command("-p.0")
+        await self._amp.set_power(False)
         self._state = MediaPlayerState.OFF
         self.async_write_ha_state()
 
     async def async_set_volume_level(self, volume):
-        amp_volume = int(volume * 100)
-        await self._send_command(f"-v.{amp_volume}")
+        await self._amp.set_volume(int(volume * 100))
         self._volume = volume
         self.async_write_ha_state()
 
     async def async_select_source(self, source):
         source_id = self._source_map[source]
-        await self._send_command(f"-i.{source_id}")
+        await self._amp.set_source(source_id)
         self._source = source
         self.async_write_ha_state()
 
-    #
-    # --- Polling ---
-    #
     async def async_update(self):
         try:
-            power = await self._send_command("-p.?")
-            self._state = MediaPlayerState.ON if power.endswith(".1") else MediaPlayerState.OFF
-
-            vol = await self._send_command("-v.?")
-            self._volume = int(vol.split(".")[1]) / 100.0
-
-            src = await self._send_command("-i.?")
-            src_id = int(src.split(".")[1])
+            self._state = MediaPlayerState.ON if await self._amp.get_power() else MediaPlayerState.OFF
+            self._volume = await self._amp.get_volume() / 100.0
+            src_id = await self._amp.get_source()
             self._source = None
-            for name, sid in self._source_map.items():
-                if sid == src_id:
+            for name, id in self._source_map.items():
+                if id == src_id:
                     self._source = name
-                    break
         except Exception:
-            # Keep last known state if unreachable
+            pass  # Keep last known state if unreachable
+
+class HegelH590Speaker(MediaPlayerEntity):
+    """HomeKit-friendly entity exposing power, volume, and inputs."""
+
+    def __init__(self, amp: HegelAmp, name, sources):
+        self._amp = amp
+        self._attr_name = f"{name} Speaker"
+        self._source_map = {name: id for name, id in sources.items()}
+        self._enabled_sources = list(sources.keys())
+        self._attr_unique_id = f"{self._attr_name}_{amp._host}"
+        self._attr_supported_features = (
+            MediaPlayerEntityFeature.TURN_ON
+            | MediaPlayerEntityFeature.TURN_OFF
+            | MediaPlayerEntityFeature.VOLUME_SET
+            | MediaPlayerEntityFeature.SELECT_SOURCE
+        )
+        self._state = MediaPlayerState.OFF
+        self._volume = 0.0
+        self._source = None
+
+    async def async_turn_on(self):
+        await self._amp.set_power(True)
+        self._state = MediaPlayerState.ON
+        self.async_write_ha_state()
+
+    async def async_turn_off(self):
+        await self._amp.set_power(False)
+        self._state = MediaPlayerState.OFF
+        self.async_write_ha_state()
+
+    async def async_set_volume_level(self, volume):
+        await self._amp.set_volume(int(volume * 100))
+        self._volume = volume
+        self.async_write_ha_state()
+
+    async def async_select_source(self, source):
+        source_id = self._source_map[source]
+        await self._amp.set_source(source_id)
+        self._source = source
+        self.async_write_ha_state()
+
+    async def async_update(self):
+        try:
+            self._state = MediaPlayerState.ON if await self._amp.get_power() else MediaPlayerState.OFF
+            self._volume = await self._amp.get_volume() / 100.0
+            src_id = await self._amp.get_source()
+            self._source = None
+            for name, id in self._source_map.items():
+                if id == src_id:
+                    self._source = name
+        except Exception:
             pass
