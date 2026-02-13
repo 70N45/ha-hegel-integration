@@ -1,0 +1,8 @@
+{
+  "name": "Hegel H590",
+  "content_in_root": false,
+  "homeassistant": "2023.12.0",
+  "domains": ["media_player"],
+  "zip_release": false,
+  "filename": "custom_components/hegel_h590"
+}
