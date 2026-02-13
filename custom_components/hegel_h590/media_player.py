@@ -7,7 +7,7 @@ from homeassistant.components.media_player import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from .const import ALL_SOURCES
+from .const import DOMAIN
 from .hegel_backend import HegelAmp
 
 _LOGGER = logging.getLogger(__name__)
@@ -16,11 +16,9 @@ VOLUME_STEP = 5
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
-    amp = HegelAmp(entry.data["host"], entry.data["port"])
-    selected_sources = {name: ALL_SOURCES[name] for name in entry.data["sources"]}
-
+    data = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([
-        HegelH590Receiver(amp, entry.data["name"], entry.data["host"], selected_sources),
+        HegelH590Receiver(data["amp"], entry.data["name"], entry.data["host"], data["sources"]),
     ])
 
 

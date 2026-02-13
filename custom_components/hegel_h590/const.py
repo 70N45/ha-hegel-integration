@@ -2,6 +2,11 @@ DOMAIN = "hegel_h590"
 DEFAULT_PORT = 50001
 DEFAULT_NAME = "Hegel H590"
 
+MODE_RECEIVER = "receiver"
+MODE_WORKAROUND = "workaround"
+MODE_BOTH = "both"
+MODES = [MODE_RECEIVER, MODE_WORKAROUND, MODE_BOTH]
+
 ALL_SOURCES = {
     "Xlr1": 1,
     "Xlr2": 2,

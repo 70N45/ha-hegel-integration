@@ -3,11 +3,11 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.helpers import selector
 
-from .const import DOMAIN, DEFAULT_PORT, DEFAULT_NAME, ALL_SOURCES
+from .const import DOMAIN, DEFAULT_PORT, DEFAULT_NAME, ALL_SOURCES, MODES, MODE_RECEIVER
 
 
 class HegelH590ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    VERSION = 1
+    VERSION = 2
 
     async def async_step_user(self, user_input=None):
         if user_input is not None:
@@ -28,6 +28,14 @@ class HegelH590ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     selector.SelectSelectorConfig(
                         options=list(ALL_SOURCES.keys()),
                         multiple=True,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Required(
+                    "mode", default=MODE_RECEIVER
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=MODES,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
