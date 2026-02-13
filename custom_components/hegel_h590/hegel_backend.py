@@ -45,3 +45,10 @@ class HegelAmp:
 
     async def set_source(self, source_id: int):
         await self.send_command(f"-i.{source_id}")
+
+    async def get_mute(self):
+        resp = await self.send_command("-m.?")
+        return resp.endswith(".1")
+
+    async def set_mute(self, mute: bool):
+        await self.send_command(f"-m.{int(mute)}")
