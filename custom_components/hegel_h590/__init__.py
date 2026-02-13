@@ -1,12 +1,19 @@
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from .const import DOMAIN, ALL_SOURCES, MODE_RECEIVER, MODE_WORKAROUND, MODE_BOTH
+from .const import (
+    DOMAIN, ALL_SOURCES,
+    MODE_RECEIVER, MODE_RECEIVER_FAN, MODE_FAN_ONLY, MODE_WORKAROUND, MODE_BOTH,
+)
 from .hegel_backend import HegelAmp
 
 
 def _platforms_for_mode(mode: str) -> list[str]:
     if mode == MODE_RECEIVER:
         return ["media_player"]
+    if mode == MODE_RECEIVER_FAN:
+        return ["media_player", "fan"]
+    if mode == MODE_FAN_ONLY:
+        return ["fan"]
     if mode == MODE_WORKAROUND:
         return ["fan", "select", "switch"]
     # MODE_BOTH
