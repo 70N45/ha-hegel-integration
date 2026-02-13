@@ -1,7 +1,7 @@
 {
   "domain": "hegel_h590",
   "name": "Hegel H590 Amplifier",
-  "version": "1.0.3",
+  "version": "2.0.0",
   "documentation": "https://support.hegel.com/component/jdownloads/send/3-files/14-h590-ip-control-codes",
   "requirements": [],
   "dependencies": [],
